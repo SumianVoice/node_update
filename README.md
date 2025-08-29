@@ -43,7 +43,11 @@ node_update.register_on_node_update(
 
 You can also cause updates to happen. You can do so manually or using a shortcut:
 ```lua
--- updates this node and also propagate it to adjacent ones
+-- triggers a [cause] node update at this position, mimicking the normal updates
+-- especially useful when using `swap_node` or LVM
+node_updates.trigger_update(pos, user, cause)
+
+-- updates this node and also always propagate it to adjacent ones
 -- if `last_pos` included, it will not update the last_pos node
 node_updates.update_node_propagate(pos, cause, user, count, delay, payload, last_pos)
 
