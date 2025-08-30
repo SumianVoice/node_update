@@ -151,15 +151,9 @@ core.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 core.register_on_liquid_transformed(function(pos_list, node_list)
     -- local time = os.clock()
     for i, pos in ipairs(pos_list) do repeat
-        local prev_ndef = core.registered_nodes[node_list[i].name]
-        if prev_ndef and prev_ndef._liquid_type then
-            break end
         local node = core.get_node(pos)
-        local def = core.registered_nodes[node.name]
-        if not def then break end
-
-        if def._liquid_type ~= nil then
-            node_updates.update_node_propagate(pos, "liquid", nil, 2, 0, nil, nil)
+        if node.name ~= node_list[i].name then
+            node_updates.update_node_propagate(pos, "liquid", nil, 2, 0, {old_node = node_list[1]}, nil)
         end
     until true end
     -- core.log(dump((os.clock() - time) * 100))
