@@ -5,7 +5,7 @@ Nodes will signal when they have been changed, such as when a neighboring node w
 For most purposes, add this callback to your node definition:
 ```lua
 core.register_node("my_mod:node_name", {
-	_on_node_update = function(pos, cause, user, counts, payload, last_pos)
+	_on_node_update = function(pos, cause, user, count, payload, last_pos)
 		return true or {} or false or nil
 	end,
 })
@@ -13,29 +13,29 @@ core.register_node("my_mod:node_name", {
 Or for example to dig all leaves when punched:
 ```lua
 core.register_node("my_mod:leaves", {
-	_on_node_update = function(pos, cause, user, counts, payload, last_pos)
-        -- `dig_node` and similar functions will cause another update which
-        -- could lead to infinite updates, so we have to be careful when using it
-        if cause == "punch" then -- and not `cause == "dig"`
-            core.node_dig(pos, core.get_node(pos), user)
-            return true
-        end
+	_on_node_update = function(pos, cause, user, count, payload, last_pos)
+		-- `dig_node` and similar functions will cause another update which
+		-- could lead to infinite updates, so we have to be careful when using it
+		if cause == "punch" then -- and not `cause == "dig"`
+			core.node_dig(pos, core.get_node(pos), user)
+			return true
+		end
 	end,
 })
 ```
 
 ## What it Detects
-- dig_node
-- place_node
-- set_node if flag set (`core.set_node(pos, node, true)`)
-- liquid transforms (engine limitations might cause this to not be 100% accurate)
+- dig_node --> `"dig"`
+- place_node --> `"place"`
+- set_node if flag set (`core.set_node(pos, node, true)`) --> `"place"`
+- liquid transforms (engine limitations might cause this to not be 100% accurate) --> `"liquid"`
 - custom node update types
 
 ## Advanced Usage
 You may also wish to hook into all node updates. This is not completely airtight however; it's not intended to catch all causes. For example it will not pick up `set_node` by default.
 ```lua
 node_update.register_on_node_update(
-	function(pos, cause, user, counts, payload, last_pos)
+	function(pos, cause, user, count, payload, last_pos)
 		-- function body here
 	end
 )
