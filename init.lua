@@ -86,6 +86,8 @@ function node_updates.update_node_propagate(pos, cause, user, count, delay, payl
 		local ret = node_updates.update_node(pos, cause, user, count-1, delay, payload, pos)
 		if (not payload) and type(ret) == "table" then payload = ret end
 	end
+	-- propagate will do count - 1 anyway, so don't even bother doing adjacent if count==1
+	if count <= 1 then return end
 	if delay == 0 then
 		-- #RECURSION
 		propagate(pos, cause, user, count, delay, payload, last_pos)
@@ -103,10 +105,11 @@ end
 ---@param delay number | nil
 ---@param payload table | nil
 ---@param last_pos table | nil
+---@param node table | nil
 ---@return table | boolean
-function node_updates.update_node(pos, cause, user, count, delay, payload, last_pos)
+function node_updates.update_node(pos, cause, user, count, delay, payload, last_pos, node)
 	if count <= 0 then return false end
-	local node = core.get_node_or_nil(pos)
+	if not node then node = core.get_node_or_nil(pos) end
 	-- don't trigger on `ignore` or un-generated nodes
 	if not node then return false end
 	-- don't trigger on unknown nodes either
@@ -144,16 +147,16 @@ end
 ---@param pos table
 ---@param user table
 ---@param cause string
-function node_updates.trigger_update(pos, user, cause)
-	node_updates.update_node_propagate(pos, cause, user, 15)
+function node_updates.trigger_update(pos, user, cause, self_update)
+	node_updates.update_node_propagate(pos, cause, user, 15, nil, nil, (self_update==true) and pos or nil)
 end
 
 core.register_on_dignode(function(pos, oldnode, digger)
-	node_updates.trigger_update(pos, digger, "dig") end)
+	node_updates.update_node_propagate(pos, "dig", placer, 15, nil, nil, pos) end)
 core.register_on_placenode(function(pos, oldnode, placer)
-	node_updates.trigger_update(pos, placer, "place") end)
-core.register_on_punchnode(function(pos, node, puncher, pointed_thing)
-	node_updates.trigger_update(pos, puncher, "place") end)
+	node_updates.update_node_propagate(pos, "place", placer, 15, nil, nil, pos) end)
+core.register_on_punchnode(function(pos, oldnode, puncher, pointed_thing)
+	node_updates.update_node(pos, "punch", puncher, 15, nil, nil, nil, oldnode) end)
 
 core.register_on_liquid_transformed(function(pos_list, node_list)
 	-- local time = os.clock()
@@ -173,6 +176,6 @@ local core_set_node = core.set_node
 core.set_node = function(pos, node, update)
 	core_set_node(pos, node)
 	if not update then return end
-	node_updates.update_node_propagate(pos, "place", nil, 15)
+	node_updates.update_node_propagate(pos, "place", nil, 15, nil, nil, pos)
 end
 
