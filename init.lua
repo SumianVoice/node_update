@@ -144,16 +144,16 @@ end
 ---@param pos table
 ---@param user table
 ---@param cause string
-function node_updates.trigger_update(pos, user, cause, self_update)
-	node_updates.update_node_propagate(pos, cause, user, 15, nil, nil, (self_update==true) and pos or nil)
+function node_updates.trigger_update(pos, user, cause)
+	node_updates.update_node_propagate(pos, cause, user, 15)
 end
 
 core.register_on_dignode(function(pos, oldnode, digger)
-	node_updates.update_node_propagate(pos, "dig", placer, 15, nil, nil, pos) end)
+	node_updates.trigger_update(pos, digger, "dig") end)
 core.register_on_placenode(function(pos, oldnode, placer)
-	node_updates.update_node_propagate(pos, "place", placer, 15, nil, nil, pos) end)
+	node_updates.trigger_update(pos, placer, "place") end)
 core.register_on_punchnode(function(pos, node, puncher, pointed_thing)
-	node_updates.update_node(pos, "punch", puncher, 15) end)
+	node_updates.trigger_update(pos, puncher, "place") end)
 
 core.register_on_liquid_transformed(function(pos_list, node_list)
 	-- local time = os.clock()
@@ -173,6 +173,6 @@ local core_set_node = core.set_node
 core.set_node = function(pos, node, update)
 	core_set_node(pos, node)
 	if not update then return end
-	node_updates.update_node_propagate(pos, "place", nil, 15, nil, nil, pos)
+	node_updates.update_node_propagate(pos, "place", nil, 15)
 end
 
