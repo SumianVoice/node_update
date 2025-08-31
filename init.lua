@@ -144,8 +144,8 @@ end
 ---@param pos table
 ---@param user table
 ---@param cause string
-function node_updates.trigger_update(pos, user, cause)
-	node_updates.update_node_propagate(pos, cause, user, 15)
+function node_updates.trigger_update(pos, user, cause, self_update)
+	node_updates.update_node_propagate(pos, cause, user, 15, nil, nil, (self_update==true) and pos or nil)
 end
 
 core.register_on_dignode(function(pos, oldnode, digger)
@@ -153,7 +153,7 @@ core.register_on_dignode(function(pos, oldnode, digger)
 core.register_on_placenode(function(pos, oldnode, placer)
 	node_updates.update_node_propagate(pos, "place", placer, 15, nil, nil, pos) end)
 core.register_on_punchnode(function(pos, node, puncher, pointed_thing)
-	node_updates.update_node_propagate(pos, "punch", puncher, 15) end)
+	node_updates.update_node(pos, "punch", puncher, 15) end)
 
 core.register_on_liquid_transformed(function(pos_list, node_list)
 	-- local time = os.clock()
