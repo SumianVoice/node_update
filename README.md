@@ -2,11 +2,13 @@
 Nodes will signal when they have been changed, such as when a neighboring node was placed or dug. This means you can avoid timers and globalsteps in some cases, and generally makes your game more "reactive" than passive.
 
 ## Common Usage
-For most purposes, add this callback to your node definition:
+For most purposes, add this callback to your node definition. The first return value is whether to keep updating adjacent nodes. The second value should be true if you change the node.
 ```lua
 core.register_node("my_mod:node_name", {
 	_on_node_update = function(pos, cause, user, count, payload, last_pos)
-		return true or {} or false or nil
+		return
+			true or {} or false or nil, --> change payload, or bool for whether to propagate
+			true or false --> true if this node has changed and should not have more callbacks run
 	end,
 })
 ```
@@ -18,7 +20,7 @@ core.register_node("my_mod:leaves", {
 		-- could lead to infinite updates, so we have to be careful when using it
 		if cause == "punch" then -- and not `cause == "dig"`
 			core.node_dig(pos, core.get_node(pos), user)
-			return true
+			return true, true
 		end
 	end,
 })
@@ -36,7 +38,9 @@ You may also wish to hook into all node updates. This is not completely airtight
 ```lua
 node_update.register_on_node_update(
 	function(pos, cause, user, count, payload, last_pos)
-		-- function body here
+		return
+			true or {} or false or nil, --> change payload, or bool for whether to propagate
+			true or false --> true if this node has changed and should not have more callbacks run
 	end
 )
 ```

@@ -4,7 +4,9 @@
 
     core.register_node("my_mod:node_name", {
         _on_node_update = function(pos, cause, user, counts, payload, last_pos)
-            return true or {} or false or nil
+            return
+                true or {} or false or nil, --> change payload, or bool for whether to propagate
+                true or false --> true if this node has changed and should not have more callbacks run
         end,
     })
 ]]
@@ -31,10 +33,12 @@ core.register_globalstep(reset_calls)
 
     node_updates.register_on_node_update(
         function(pos, cause, user, counts, payload, last_pos)
-            return true or {} or false or nil
+            return
+                true or {} or false or nil, --> change payload, or bool for whether to propagate
+                true or false --> true if this node has changed and should not have more callbacks run
         end
     )
-]]
+--]]
 ---@param func function
 function node_updates.register_on_node_update(func)
     table.insert(node_updates.registered_on_node_updates, func)
@@ -102,17 +106,17 @@ end
 ---@return table | boolean
 function node_updates.update_node(pos, cause, user, count, delay, payload, last_pos)
     if count <= 0 then return false end
-    local node = core.get_node(pos)
+    local node = core.get_node_or_nil(pos)
     -- don't trigger on `ignore` or un-generated nodes
     if not node then return false end
-    local ndef = core.registered_nodes[node.name]
     -- don't trigger on unknown nodes either
+    local ndef = core.registered_nodes[node.name]
     if ndef then
         local updated = false
         if ndef._on_node_update then
-            calls = calls + (cause == "liquid" and 0.01 or 1)
+            calls = calls + (cause == "liquid" and 0.1 or 1)
             -- allow the payload to propogate
-            local ret = ndef._on_node_update(pos, cause, user, count-1, payload, last_pos)
+            local ret, halt = ndef._on_node_update(pos, cause, user, count-1, payload, last_pos)
             if ret then
                 if type(ret) == "table" then payload = ret end
                 updated = true
@@ -120,9 +124,12 @@ function node_updates.update_node(pos, cause, user, count, delay, payload, last_
         end
         -- go through the registered update funcs and if any of them return true, propogate the update
         for _, node_func in ipairs(node_updates.registered_on_node_updates) do
-            if node_func(pos, cause, user, count, delay, payload, last_pos) then
+            local ret, halt = node_func(pos, cause, user, count, delay, payload, last_pos)
+            if ret then
+                if type(ret) == "table" then payload = ret end
                 updated = true
             end
+            if halt then break end
         end
         -- if the node updated and signalled so, it will continue propagating the update
         if updated then
