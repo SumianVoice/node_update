@@ -179,3 +179,20 @@ core.set_node = function(pos, node, update)
 	node_updates.update_node_propagate(pos, "place", nil, 15, nil, nil, pos)
 end
 
+local core_spawn_falling_node = core.spawn_falling_node
+function core.spawn_falling_node(pos, ...)
+	local a, b, c = core_spawn_falling_node(pos, ...)
+	if a then
+		node_updates.update_node_propagate(pos, "dig", nil, 15, nil, nil, pos)
+	end
+	return a, b, c
+end
+
+local core_check_single_for_falling = core.check_single_for_falling
+function core.check_single_for_falling(pos, ...)
+	local a, b, c = core_check_single_for_falling(pos, ...)
+	if a then
+		node_updates.update_node_propagate(pos, "dig", nil, 15, nil, nil, pos)
+		return a, b, c
+	end
+end
