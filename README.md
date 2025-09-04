@@ -29,6 +29,7 @@ core.register_node("my_mod:leaves", {
 ## What it Detects
 - dig_node --> `"dig"`
 - place_node --> `"place"`
+- any `falling_node`s --> `"dig"`
 - set_node if flag set (`core.set_node(pos, node, true)`) --> `"place"`
 - liquid transforms (engine limitations might cause this to not be 100% accurate) --> `"liquid"`
 - custom node update types
