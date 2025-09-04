@@ -179,6 +179,8 @@ core.set_node = function(pos, node, update)
 	node_updates.update_node_propagate(pos, "place", nil, 15, nil, nil, pos)
 end
 
+-- falling_node
+
 local core_spawn_falling_node = core.spawn_falling_node
 function core.spawn_falling_node(pos, ...)
 	local a, b, c = core_spawn_falling_node(pos, ...)
@@ -196,3 +198,35 @@ function core.check_single_for_falling(pos, ...)
 		return a, b, c
 	end
 end
+
+local core_falling_node = core.registered_entities["__builtin:falling_node"]
+local falling_node = table.copy(core_falling_node)
+
+local old_add_node = core.add_node
+local add_node_calls = {}
+local function add_node(pos, ...)
+	table.insert(add_node_calls, pos)
+	return old_add_node(pos, ...)
+end
+-- bad builtin means stupid workarounds
+local function hook_add_node()
+	if add_node ~= core.add_node then old_add_node = core.add_node end
+	rawset(core, "add_node", add_node)
+end
+local function unhook_add_node()
+	rawset(core, "add_node", old_add_node)
+	local sets = add_node_calls
+	add_node_calls = {}
+	return sets
+end
+
+falling_node.try_place = function(self, bcp, bcn)
+	hook_add_node()
+	local a, b, c = core_falling_node.try_place(self, bcp, bcn)
+	local sets = unhook_add_node()
+	for i, pos in ipairs(sets) do
+		node_updates.update_node_propagate(pos, "place", nil, 15, nil, nil, pos)
+	end
+	return a, b, c
+end
+core.register_entity(":__builtin:falling_node", falling_node)
