@@ -3,7 +3,7 @@
 --[[
 
 	core.register_node("my_mod:node_name", {
-		_on_node_update = function(pos, cause, user, counts, payload, last_pos)
+		_on_node_update = function(pos, cause, user, count, payload, data)
 			return
 				true or {} or false or nil, --> change payload, or bool for whether to propagate
 				true or false --> true if this node has changed and should not have more callbacks run
@@ -32,7 +32,7 @@ core.register_globalstep(reset_calls)
 	Same signature of nodedef._on_node_update
 
 	node_updates.register_on_node_update(
-		function(pos, cause, user, counts, payload, last_pos)
+		function(pos, cause, user, count, payload, data)
 			return
 				true or {} or false or nil, --> change payload, or bool for whether to propagate
 				true or false --> true if this node has changed and should not have more callbacks run
@@ -53,36 +53,44 @@ local adjacent = {
 	[6] = vector.new(0, 0, -1),
 }
 
-local function propagate(pos, cause, user, count, delay, payload, last_pos)
+local function propagate(pos, cause, user, count, delay, payload, data)
 	local offset = 2 -- math.random(0, 5)
 	for i=1, #adjacent do
 		local p = adjacent[(i + offset) % 6 + 1]
 		local v = vector.add(pos, p)
-		if (not last_pos) or not vector.equals(v, last_pos) then
-			node_updates.update_node(v, cause, user, count-1, delay, payload, pos)
+		if not data.node_index[tostring(v)] then
+			node_updates.update_node(v, cause, user, count-1, delay, payload, data)
 		end
 	end
 end
 
+local function check_data(data)
+	-- convert vectors to a table that includes the vector
+	if data and type(data) == "table" and getmetatable(data) == vector then
+		data = {node_index = {tostring(data)}}
+	end
+	if not data then data = {node_index = {}} end
+	if not data.node_index then data.node_index = {} end
+	return data
+end
+
 -- updates this node and also propagate it to adjacent ones
--- if `last_pos` included, it will not update the last_pos node
 ---@param pos table
 ---@param cause string
 ---@param user table | nil (or userdata)
 ---@param count number
 ---@param delay number | nil
 ---@param payload table | nil
----@param last_pos table | nil
+---@param data table | nil
 ---@return nil
-function node_updates.update_node_propagate(pos, cause, user, count, delay, payload, last_pos)
+function node_updates.update_node_propagate(pos, cause, user, count, delay, payload, data)
+	data = check_data(data)
 	if not delay then delay = 0.1 end
 	-- only allow a certain limit on total updates per server step
-	if calls > call_limit then
-		return false end
-	-- only allow some number of recursions per update
+	if calls > call_limit then return false end
 	if count <= 0 then return end
 	-- update this node only if it's not already processed
-	if (not last_pos) or not pos:equals(last_pos) then
+	if not data.node_index[tostring(pos)] then
 		local ret = node_updates.update_node(pos, cause, user, count-1, delay, payload, pos)
 		if (not payload) and type(ret) == "table" then payload = ret end
 	end
@@ -90,24 +98,25 @@ function node_updates.update_node_propagate(pos, cause, user, count, delay, payl
 	if count <= 1 then return end
 	if delay == 0 then
 		-- #RECURSION
-		propagate(pos, cause, user, count, delay, payload, last_pos)
+		propagate(pos, cause, user, count, delay, payload, data)
 	else
-		core.after(delay, propagate, pos, cause, user, count, delay, payload, last_pos)
+		core.after(delay, propagate, pos, cause, user, count, delay, payload, data)
 	end
 end
 
 -- Updates a single node, and depending on its return value, propagates it to adjacent nodes.
--- If included, does not update `last_pos`.
 ---@param pos table
 ---@param cause string
 ---@param user table | nil (or userdata)
 ---@param count number
 ---@param delay number | nil
 ---@param payload table | nil
----@param last_pos table | nil
+---@param data table | nil
 ---@param node table | nil
 ---@return table | boolean
-function node_updates.update_node(pos, cause, user, count, delay, payload, last_pos, node)
+function node_updates.update_node(pos, cause, user, count, delay, payload, data, node)
+	data = check_data(data)
+	data.node_index[tostring(pos)] = true
 	if count <= 0 then return false end
 	if not node then node = core.get_node_or_nil(pos) end
 	-- don't trigger on `ignore` or un-generated nodes
@@ -119,7 +128,7 @@ function node_updates.update_node(pos, cause, user, count, delay, payload, last_
 		if ndef._on_node_update then
 			calls = calls + (cause == "liquid" and 0.1 or 1)
 			-- allow the payload to propogate
-			local ret, halt = ndef._on_node_update(pos, cause, user, count-1, payload, last_pos)
+			local ret, halt = ndef._on_node_update(pos, cause, user, count, payload, data)
 			if ret then
 				if type(ret) == "table" then payload = ret end
 				updated = true
@@ -127,7 +136,7 @@ function node_updates.update_node(pos, cause, user, count, delay, payload, last_
 		end
 		-- go through the registered update funcs and if any of them return true, propogate the update
 		for _, node_func in ipairs(node_updates.registered_on_node_updates) do
-			local ret, halt = node_func(pos, cause, user, count, delay, payload, last_pos)
+			local ret, halt = node_func(pos, cause, user, count, delay, payload, data)
 			if ret then
 				if type(ret) == "table" then payload = ret end
 				updated = true
@@ -136,7 +145,7 @@ function node_updates.update_node(pos, cause, user, count, delay, payload, last_
 		end
 		-- if the node updated and signalled so, it will continue propagating the update
 		if updated then
-			node_updates.update_node_propagate(pos, cause, user, count, delay, payload, last_pos)
+			node_updates.update_node_propagate(pos, cause, user, count, delay, payload, data)
 			return payload or false
 		end
 	end
