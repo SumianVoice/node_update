@@ -18,6 +18,7 @@ node_updates = {}
 node_updates.p = {}
 
 node_updates.p.registered_on_node_updates = {}
+node_updates.p.registered_on_update_causes = {}
 
 local calls = 0
 -- max number of updates per server step
@@ -44,7 +45,7 @@ end
 core.register_globalstep(reset_calls)
 
 --[[
-	Same signature of nodedef._on_node_update
+	Same callback signature of nodedef._on_node_update
 
 	node_updates.register_on_node_update(
 		function(pos, cause, user, data)
@@ -57,6 +58,17 @@ core.register_globalstep(reset_calls)
 ---@param func function
 function node_updates.register_on_node_update(func)
 	table.insert(node_updates.p.registered_on_node_updates, func)
+end
+
+-- Same callback signature of `nodedef._on_node_update` and `node_updates.register_on_node_update`
+---@param func function
+function node_updates.register_on_update_cause(cause, func)
+	local set = node_updates.p.registered_on_update_causes[cause]
+	if not set then
+		set = {}
+		node_updates.p.registered_on_update_causes[cause] = set
+	end
+	table.insert(set, func)
 end
 
 local adjacent = {
@@ -96,6 +108,13 @@ function node_updates.p.update_pos(pos, cause, user, data)
 	if not data._visited_list[tostring(pos)] then
 		data._visited_list[tostring(pos)] = true
 	end
+	local cause_callbacks = node_updates.p.registered_on_update_causes[cause]
+	if cause_callbacks and not halt then for _, node_func in ipairs(cause_callbacks) do
+		local is_callback_updated
+		is_callback_updated, halt = node_func(pos, cause, user, data)
+		is_updated = is_updated or is_callback_updated
+		if halt then break end
+	end end
 	if not halt then for _, node_func in ipairs(node_updates.p.registered_on_node_updates) do
 		local is_callback_updated
 		is_callback_updated, halt = node_func(pos, cause, user, data)
@@ -246,9 +265,8 @@ function core.check_single_for_falling(pos, ...)
 	end
 end
 
-node_updates.register_on_node_update(
+node_updates.register_on_update_cause("falling_node_check",
     function(pos, cause, user, data)
-		if cause ~= "falling_node_check" then return end
 		local ret = core.check_single_for_falling(pos)
 		return ret, ret
     end
