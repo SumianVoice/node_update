@@ -21,7 +21,7 @@ node_updates.p.registered_on_node_updates = {}
 
 local calls = 0
 -- max number of updates per server step
-node_updates.call_limit = 500 -- per step
+node_updates.call_limit = 1000 -- per step
 
 node_updates.p.nodes_with_updates = {}
 local nodes_with_updates = node_updates.p.nodes_with_updates
@@ -201,7 +201,8 @@ core.register_on_liquid_transformed(function(pos_list, node_list)
 		if node.name ~= node_list[i].name then
 			node_updates.cause_adjacent_update(pos, "liquid", nil, {
 				_count = 2,
-				_visited_list = {[tostring(pos)]=true}
+				_visited_list = {[tostring(pos)]=true},
+				_cost = 0.01,
 			})
 		end
 	until true end
