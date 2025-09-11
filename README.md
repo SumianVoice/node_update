@@ -7,7 +7,7 @@ For most purposes, add this callback to your node definition. The first return v
 core.register_node("my_mod:node_name", {
 	_on_node_update = function(pos, cause, user, data)
 		return
-			true or false or nil, --> change payload, or bool for whether to propagate
+			true or false or nil, --> whether to propagate to adjacent nodes
 			true or false or nil --> true if this node has changed and should not have more callbacks run
 	end,
 })
@@ -36,15 +36,18 @@ core.register_node("my_mod:leaves", {
 - custom node update types
 
 ## Advanced Usage
-You may also wish to hook into all node updates. This is not completely airtight however; it's not intended to catch all causes. For example it will not pick up `set_node` by default.
+You may also wish to hook into all node updates or all updates of a certain type (`cause`). This is not completely airtight however; it's not intended to catch all causes. For example it will not pick up `set_node` by default.
 ```lua
-node_update.register_on_node_update(
-	function(pos, cause, user, count, payload, data)
-		return
-			true or false or nil, --> change payload, or bool for whether to propagate
-			true or false or nil --> true if this node has changed and should not have more callbacks run
-	end
-)
+-- hook into all updates regardless of cause (avoid this)
+node_update.register_on_node_update(function(pos, cause, user, data)
+	return
+		true or false or nil, --> whether to propagate to adjacent nodes
+		true or false or nil --> true if this node has changed and should not have more callbacks run
+end)
+-- hook into all "dig" updates
+node_updates.register_on_update_cause("dig", function(pos, cause, user, data)
+	-- same format as above
+end)
 ```
 
 You can also cause updates to happen.
