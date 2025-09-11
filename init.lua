@@ -23,6 +23,17 @@ local calls = 0
 -- max number of updates per server step
 node_updates.call_limit = 500 -- per step
 
+node_updates.p.nodes_with_updates = {}
+local nodes_with_updates = node_updates.p.nodes_with_updates
+
+core.register_on_mods_loaded(function()
+	for name, ndef in pairs(core.registered_nodes) do
+		if ndef._on_node_update then
+			nodes_with_updates[name] = true
+		end
+	end
+end)
+
 local function reset_calls(dtime)
 	if calls > node_updates.call_limit then
 		core.log("warning", "[node_updates] too many node updates are ocurring!")
@@ -76,10 +87,10 @@ end
 function node_updates.p.update_pos(pos, cause, user, data)
 	calls = calls + (data._cost or 1)
 	local node = core.get_node_or_nil(pos)
-	local ndef = node and core.registered_nodes[node.name]
-	if not ndef then return end
+	if not node then return end
 	local is_updated, halt
-	if ndef and ndef._on_node_update then
+	if nodes_with_updates[node.name] then
+		local ndef = node and core.registered_nodes[node.name]
 		is_updated, halt = ndef._on_node_update(pos, cause, user, data)
 	end
 	if not data._visited_list[tostring(pos)] then
@@ -233,6 +244,14 @@ function core.check_single_for_falling(pos, ...)
 		return a, b, c
 	end
 end
+
+node_updates.register_on_node_update(
+    function(pos, cause, user, data)
+		if cause ~= "falling_node_check" then return end
+		local ret = core.check_single_for_falling(pos)
+		return ret, ret
+    end
+)
 
 local core_falling_node = core.registered_entities["__builtin:falling_node"]
 local falling_node = table.copy(core_falling_node)
