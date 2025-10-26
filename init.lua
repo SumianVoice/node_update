@@ -34,6 +34,14 @@ core.register_on_mods_loaded(function()
 		end
 	end
 end)
+-- it's possible a node was overridden after the above
+core.after(0.0, function()
+	for name, ndef in pairs(core.registered_nodes) do
+		if ndef._on_node_update then
+			nodes_with_updates[name] = true
+		end
+	end
+end)
 
 local function reset_calls(dtime)
 	if calls > node_updates.call_limit then
