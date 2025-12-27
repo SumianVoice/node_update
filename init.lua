@@ -5,7 +5,7 @@
 	core.register_node("my_mod:node_name", {
 		_on_node_update = function(pos, cause, user, data)
 			return
-				true or false or nil, --> change payload, or bool for whether to propagate
+				true or false or nil, --> bool | nil for whether to propagate to adjacent
 				true or false or nil --> true if this node has changed and should not have more callbacks run
 		end,
 	})
@@ -58,7 +58,7 @@ core.register_globalstep(reset_calls)
 	node_updates.register_on_node_update(
 		function(pos, cause, user, data)
 			return
-				true or false or nil, --> change payload, or bool for whether to propagate
+				true or false or nil, --> bool | nil for whether to propagate to adjacent
 				true or false or nil --> true if this node has changed and should not have more callbacks run
 		end
 	)
@@ -91,7 +91,7 @@ local adjacent = {
 local function check_data(data)
 	-- convert vectors to a table that includes the vector
 	if data and (type(data) == "table") and (getmetatable(data) == vector) then
-		data = {_visited_list = {[tostring(data)]=true}}
+		data = {_visited_list = {[tostring(data)] = pos}}
 	end
 	if not data then data = {_visited_list = {}} end
 	if not data._visited_list then data._visited_list = {} end
@@ -114,7 +114,7 @@ function node_updates.p.update_pos(pos, cause, user, data)
 		is_updated, halt = ndef._on_node_update(pos, cause, user, data)
 	end
 	if not data._visited_list[tostring(pos)] then
-		data._visited_list[tostring(pos)] = true
+		data._visited_list[tostring(pos)] = pos
 	end
 	local cause_callbacks = node_updates.p.registered_on_update_causes[cause]
 	if cause_callbacks and not halt then for _, node_func in ipairs(cause_callbacks) do
@@ -137,7 +137,7 @@ function node_updates.p.queue_adjacent(pos, stack, cause, user, data, no_iterate
 		local p = pos + d
 		-- only add unseen nodes
 		if not data._visited_list[tostring(p)] then
-			data._visited_list[tostring(p)] = true
+			data._visited_list[tostring(p)] = pos
 			table.insert(stack, p)
 			if (not no_iterate) and data._delay > 0 then
 				core.after(data._delay, node_updates.p.iterate_stack, stack, cause, user, data)
@@ -192,7 +192,7 @@ function node_updates.cause_adjacent_update(pos, cause, user, data, update_start
 	data = check_data(data)
 	local stack = {}
 	if not update_start then
-		data._visited_list[tostring(pos)] = true
+		data._visited_list[tostring(pos)] = pos
 	end
 	node_updates.p.queue_adjacent(pos, stack, cause, user, data, true)
 	node_updates.p.cause_update(pos, stack, cause, user, data)
@@ -206,7 +206,7 @@ end
 function node_updates.cause_single_update(pos, cause, user, data)
 	data = check_data(data)
 	local stack = {pos}
-	data._visited_list[tostring(pos)] = true
+	data._visited_list[tostring(pos)] = pos
 	node_updates.p.cause_update(pos, stack, cause, user, data)
 end
 
@@ -228,7 +228,7 @@ core.register_on_liquid_transformed(function(pos_list, node_list)
 		if node.name ~= node_list[i].name then
 			node_updates.cause_adjacent_update(pos, "liquid", nil, {
 				_count = 2,
-				_visited_list = {[tostring(pos)]=true},
+				_visited_list = {[tostring(pos)] = pos},
 				_cost = 0.01,
 			})
 		end
