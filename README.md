@@ -62,7 +62,7 @@ node_updates.cause_single_update(pos, "punch", user, {})
 node_updates.cause_adjacent_update(pos, "my_special_update_type", user, {
 	my_arbitrary_data = "hello world",
 	_count = 2, -- distance to update (manhatten dist)
-	_visited_list = {[tostring(pos)]=true}, -- no updates for positions in this map
+	_visited_list = {[tostring(pos)]=pos}, -- no updates for positions in this map
 	_delay = 0.0, -- delay between updating this one and its adjacent (0 for instant), NOT saved between server starts
 })
 ```
