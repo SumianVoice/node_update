@@ -191,7 +191,9 @@ end
 function node_updates.cause_adjacent_update(pos, cause, user, data, update_start)
 	data = check_data(data)
 	local stack = {}
-	if not update_start then
+	if update_start then
+		table.insert(stack, pos)
+	else
 		data._visited_list[tostring(pos)] = pos
 	end
 	node_updates.p.queue_adjacent(pos, stack, cause, user, data, true)
@@ -211,10 +213,10 @@ function node_updates.cause_single_update(pos, cause, user, data)
 end
 
 core.register_on_dignode(function(pos, old_node, user)
-	node_updates.cause_adjacent_update(pos, "dig", user)
+	node_updates.cause_adjacent_update(pos, "dig", user, nil, true)
 end)
 core.register_on_placenode(function(pos, newnode, user, old_node, itemstack, pointed_thing)
-	node_updates.cause_adjacent_update(pos, "place", user)
+	node_updates.cause_adjacent_update(pos, "place", user, nil, true)
 end)
 core.register_on_punchnode(function(pos, old_node, user, pointed_thing)
 	node_updates.cause_single_update(pos, "punch", user, {
