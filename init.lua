@@ -27,13 +27,6 @@ node_updates.call_limit = 1000 -- per step
 node_updates.p.nodes_with_updates = {}
 local nodes_with_updates = node_updates.p.nodes_with_updates
 
-core.register_on_mods_loaded(function()
-	for name, ndef in pairs(core.registered_nodes) do
-		if ndef._on_node_update then
-			nodes_with_updates[name] = true
-		end
-	end
-end)
 -- it's possible a node was overridden after the above
 core.after(0.0, function()
 	for name, ndef in pairs(core.registered_nodes) do
@@ -91,7 +84,7 @@ local adjacent = {
 local function check_data(data)
 	-- convert vectors to a table that includes the vector
 	if data and (type(data) == "table") and (getmetatable(data) == vector) then
-		data = {_visited_list = {[tostring(data)] = pos}}
+		data = {_visited_list = {[tostring(data)] = data}}
 	end
 	if not data then data = {_visited_list = {}} end
 	if not data._visited_list then data._visited_list = {} end
