@@ -83,7 +83,7 @@ local adjacent = {
 
 local function check_data(data)
 	-- convert vectors to a table that includes the vector
-	if data and (type(data) == "table") and (getmetatable(data) == vector) then
+	if data and (getmetatable(data) == vector) then
 		data = {_visited_list = {[tostring(data)] = data}}
 	end
 	if not data then data = {_visited_list = {}} end
@@ -106,8 +106,9 @@ function node_updates.p.update_pos(pos, cause, user, data)
 		local ndef = node and core.registered_nodes[node.name]
 		is_updated, halt = ndef._on_node_update(pos, cause, user, data)
 	end
-	if not data._visited_list[tostring(pos)] then
-		data._visited_list[tostring(pos)] = pos
+	local strpos = tostring(pos)
+	if not data._visited_list[strpos] then
+		data._visited_list[strpos] = pos
 	end
 	local cause_callbacks = node_updates.p.registered_on_update_causes[cause]
 	if cause_callbacks and not halt then for _, node_func in ipairs(cause_callbacks) do
@@ -129,8 +130,9 @@ function node_updates.p.queue_adjacent(pos, stack, cause, user, data, no_iterate
 	for i, d in ipairs(adjacent) do
 		local p = pos + d
 		-- only add unseen nodes
-		if not data._visited_list[tostring(p)] then
-			data._visited_list[tostring(p)] = pos
+		local strpos = tostring(p)
+		if not data._visited_list[strpos] then
+			data._visited_list[strpos] = pos
 			table.insert(stack, p)
 			if (not no_iterate) and data._delay > 0 then
 				core.after(data._delay, node_updates.p.iterate_stack, stack, cause, user, data)
@@ -269,10 +271,10 @@ function core.check_single_for_falling(pos, ...)
 end
 
 node_updates.register_on_update_cause("falling_node_check",
-    function(pos, cause, user, data)
+	function(pos, cause, user, data)
 		local ret = core.check_single_for_falling(pos)
 		return ret, ret
-    end
+	end
 )
 
 local core_falling_node = core.registered_entities["__builtin:falling_node"]
